@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SEO Performance Dashboard</title>
+  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    .chart-container { margin-top: 30px; }
+    #upload { margin-bottom: 20px; }
+  </style>
+</head>
+<body>
+  <h1>SEO Performance Dashboard</h1>
+  <input type="file" id="upload" accept="application/json">
+
+  <div class="chart-container" id="clicksImpressions"></div>
+  <div class="chart-container" id="ctrTrend"></div>
+  <div class="chart-container" id="brandedVsNonBranded"></div>
+  <div class="chart-container" id="pageTypePerformance"></div>
+  <div class="chart-container" id="growthMetrics"></div>
+
+  <script>
+    document.getElementById('upload').addEventListener('change', function(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const jsonData = JSON.parse(e.target.result);
+        renderDashboard(jsonData);
+      };
+      reader.readAsText(file);
+    });
+
+    function parseMetric(data, label) {
+      const row = data.find(row => row[''] === label);
+      return Object.entries(row)
+        .filter(([k, v]) => k.startsWith('__') && v !== '' && v !== '-')
+        .map(([k, v]) => parseFloat(("" + v).replace(/,/g, '')));
+    }
+
+    function parseLabels(data) {
+      const header = data[1]; // Traffic Tracker row with labels
+      return Object.entries(header)
+        .filter(([k, v]) => k.startsWith('__') && v !== '')
+        .map(([k, v]) => v);
+    }
+
+    function renderDashboard(data) {
+      const labels = parseLabels(data);
+      const clicks = parseMetric(data, 'Clicks');
+      const impressions = parseMetric(data, 'Impressions');
+      const ctr = parseMetric(data, 'CTR');
+      const branded = parseMetric(data, 'Branded-Clicks');
+      const nonBranded = parseMetric(data, 'Non-Branded Clicks');
+      const blogClicks = parseMetric(data, 'Blog Posts');
+      const productClicks = parseMetric(data, 'Product Pages');
+      const serviceClicks = parseMetric(data, 'Services');
+
+      // Clicks & Impressions
+      Plotly.newPlot('clicksImpressions', [
+        { x: labels, y: clicks, type: 'scatter', mode: 'lines+markers', name: 'Clicks' },
+        { x: labels, y: impressions, type: 'scatter', mode: 'lines+markers', name: 'Impressions' }
+      ], {
+        title: 'Clicks & Impressions Over Time', xaxis: { title: 'Time' }, yaxis: { title: 'Count' }
+      });
+
+      // CTR Trend
+      Plotly.newPlot('ctrTrend', [
+        { x: labels, y: ctr, type: 'scatter', mode: 'lines+markers', name: 'CTR (%)' }
+      ], {
+        title: 'CTR Trend Over Time', xaxis: { title: 'Time' }, yaxis: { title: 'CTR (%)' }
+      });
+
+      // Branded vs Non-Branded Clicks
+      Plotly.newPlot('brandedVsNonBranded', [
+        { x: labels, y: branded, type: 'bar', name: 'Branded Clicks' },
+        { x: labels, y: nonBranded, type: 'bar', name: 'Non-Branded Clicks' }
+      ], {
+        title: 'Branded vs Non-Branded Clicks', barmode: 'stack', xaxis: { title: 'Time' }, yaxis: { title: 'Clicks' }
+      });
+
+      // Page Type Performance
+      Plotly.newPlot('pageTypePerformance', [
+        { x: labels, y: blogClicks, type: 'bar', name: 'Blog Posts' },
+        { x: labels, y: productClicks, type: 'bar', name: 'Product Pages' },
+        { x: labels, y: serviceClicks, type: 'bar', name: 'Services' }
+      ], {
+        title: 'Page Type Clicks Performance', barmode: 'group', xaxis: { title: 'Time' }, yaxis: { title: 'Clicks' }
+      });
+
+      // Growth Metrics
+      const clickGrowth = parseMetric(data, 'Clicks % Growth');
+      const impressionGrowth = parseMetric(data, 'Impressions % Growth');
+      const ctrGrowth = parseMetric(data, 'CTR % Growth');
+
+      Plotly.newPlot('growthMetrics', [
+        { x: labels, y: clickGrowth, type: 'scatter', mode: 'lines+markers', name: 'Clicks % Growth' },
+        { x: labels, y: impressionGrowth, type: 'scatter', mode: 'lines+markers', name: 'Impressions % Growth' },
+        { x: labels, y: ctrGrowth, type: 'scatter', mode: 'lines+markers', name: 'CTR % Growth' }
+      ], {
+        title: 'Growth Metrics Over Time', xaxis: { title: 'Time' }, yaxis: { title: 'Growth (%)' }
+      });
+    }
+  </script>
+</body>
+</html>
